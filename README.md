@@ -12,7 +12,7 @@ client for WalletConnect v2 to:
 - manage sessions
 - send Signature requests to a paired wallet
 - sync with nostr to send reputation messages
-- poll a known third party service to see if the messages are valid
+- poll a known third-party service to see if the messages are valid
 
 ## Running locally
 
