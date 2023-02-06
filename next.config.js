@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   distDir: "build",
-  webpack(config, { isServer }) {
+  webpack(config) {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
