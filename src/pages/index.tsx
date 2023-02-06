@@ -382,7 +382,7 @@ const Home: NextPage = () => {
               <div> Socket disconnected </div>
             )}
           </div>
-          <table>
+          <table style={{ alignContent: "left" }}>
             <thead>
               <tr>
                 <td>
@@ -408,12 +408,16 @@ const Home: NextPage = () => {
               const targetDid = event.body?.data?.did;
               const ts = JSON.parse(JSON.parse(event.content)?.msg)?.ts;
               const verified = event.body.valid;
+              const rowStyle = {
+                fontSize: "11px",
+                fontFamily: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`,
+              };
               return (
                 <tr key={event.id}>
-                  <td>{trimDid(sourceDid)}</td>
+                  <td style={rowStyle}>{trimDid(sourceDid)}</td>
                   <td>{messageType}</td>
-                  <td>{trimDid(targetDid)}</td>
-                  <td>{ts}</td>
+                  <td style={rowStyle}>{trimDid(targetDid)}</td>
+                  <td>{new Date(ts).toLocaleString()}</td>
                   <td>{JSON.stringify(verified ?? false)}</td>
                 </tr>
               );
