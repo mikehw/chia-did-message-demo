@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import Banner from "../components/Banner";
 import Blockchain from "../components/Blockchain";
@@ -398,7 +398,7 @@ const Home: NextPage = () => {
                   <b>Timestamp</b>
                 </td>
                 <td>
-                  <b>Verified by Others</b>
+                  <b>Verified by Mike</b>
                 </td>
               </tr>
             </thead>
@@ -406,7 +406,7 @@ const Home: NextPage = () => {
               const sourceDid = JSON.parse(event.content)?.did;
               const messageType = event.body.type;
               const targetDid = event.body?.data?.did;
-              const ts =  JSON.parse(JSON.parse(event.content)?.msg)?.ts;
+              const ts = JSON.parse(JSON.parse(event.content)?.msg)?.ts;
               const verified = event.body.valid;
               return (
                 <tr key={event.id}>
@@ -416,7 +416,7 @@ const Home: NextPage = () => {
                   <td>{ts}</td>
                   <td>{JSON.stringify(verified ?? false)}</td>
                 </tr>
-              )
+              );
             })}
           </table>
         </div>

@@ -6,6 +6,7 @@ import { fonts, responsive } from "../styles";
 import Button from "./Button";
 import Icon from "./Icon";
 import { DEFAULT_GITHUB_REPO_URL } from "../constants";
+import Head from "next/head";
 
 const SHeader = styled.div`
   margin-top: -1px;
@@ -63,6 +64,9 @@ const Header = (props: HeaderProps) => {
   const { ping, disconnect, session } = props;
   return (
     <SHeader {...props}>
+      <Head>
+        <title>DID Signing Demo</title>
+      </Head>
       {session ? (
         <>
           <SActiveSession>

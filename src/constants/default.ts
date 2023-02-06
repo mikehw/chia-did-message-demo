@@ -34,7 +34,7 @@ export enum DEFAULT_CHIA_METHODS {
 export enum DEFAULT_CHIA_EVENTS {}
 
 export const DEFAULT_GITHUB_REPO_URL =
-  "https://github.com/WalletConnect/web-examples/tree/main/dapps/react-dapp-v2";
+  "https://github.com/mikehw/chia-did-message-demo";
 
 type RelayerType = {
   value: string | undefined;
