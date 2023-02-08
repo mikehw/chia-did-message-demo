@@ -1,5 +1,7 @@
 import type { NextPage } from "next";
 import React, { useEffect, useState } from "react";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+import Button from "../components/Button";
 
 import Banner from "../components/Banner";
 import Blockchain from "../components/Blockchain";
@@ -83,9 +85,6 @@ const Home: NextPage = () => {
           },
           async (event: any) => {
             if (!events.find((e) => e.id == event.id)) {
-              console.log("Adding Event!");
-              console.log(event);
-              console.log(events);
               setEvents((e) => [event, ...e]);
             }
           }
@@ -450,6 +449,7 @@ const Home: NextPage = () => {
                 <td>
                   <b>Verified by Mike</b>
                 </td>
+                <td></td>
               </tr>
             </thead>
             {events.map((event: any) => {
@@ -457,7 +457,7 @@ const Home: NextPage = () => {
                 return null;
               }
               discoveredIds.add(event.id);
-              const sourceDid = event.body.did;
+              const sourceDid = event.did;
               const messageType = event.body.type;
               const target =
                 event.body?.data?.did ?? event.body?.data?.collection_id;
@@ -468,12 +468,17 @@ const Home: NextPage = () => {
                 fontFamily: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`,
               };
               return (
-                <tr key={event.id}>
-                  <td style={rowStyle}>{trimDid(sourceDid)}</td>
+                <tr key={event.id} style={rowStyle}>
+                  <td>{trimDid(sourceDid)}</td>
                   <td>{messageType}</td>
-                  <td style={rowStyle}>{trimDid(target)}</td>
+                  <td>{trimDid(target)}</td>
                   <td>{new Date(ts).toLocaleString()}</td>
                   <td>{JSON.stringify(verified ?? false)}</td>
+                  <td>
+                    <CopyToClipboard text={event.content}>
+                      <button>Copy</button>
+                    </CopyToClipboard>
+                  </td>
                 </tr>
               );
             })}

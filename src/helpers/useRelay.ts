@@ -81,7 +81,7 @@ export const useRelay = ({ url }: Props) => {
         if (valid === false) {
           return; //callback(event);
         }
-        return callback({ ...event, body: { ...body, valid: valid } });
+        return callback({ ...event, body: { ...body, valid: valid }, did: message.did });
       } catch (e) {
         // Ignore
       }
