@@ -385,7 +385,7 @@ const Home: NextPage = () => {
     if (nftCollectionVotes[e.body?.data?.collection_id] === undefined) {
       nftCollectionVotes[e.body?.data?.collection_id] = new Set<string>();
     }
-    nftCollectionVotes[e.body?.data?.collection_id].add(e.body?.data?.did);
+    nftCollectionVotes[e.body?.data?.collection_id].add(e?.did);
   });
 
   return (
