@@ -42,9 +42,12 @@ import {
   getEventHash,
   signEvent,
 } from "nostr-tools";
+import { collectionOptions } from "../modals/collectionOptions";
 
 // Normal import does not work here
 const { version } = require("@walletconnect/sign-client/package.json");
+
+const relayUrls = ["wss://nostr.8e23.net", "wss://relay.current.fyi"];
 
 const sk = generatePrivateKey();
 const pk = getPublicKey(sk);
@@ -57,7 +60,7 @@ const Home: NextPage = () => {
   const [waitingFor, setWaitingFor] = useState("");
   const [currentDID, setCurrentDID] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const { isConnected, subscribeToEvents, publish, relay } = useRelay();
+  const relays = relayUrls.map((url) => useRelay({ url }));
   const [events, setEvents] = useState<any[]>([]);
 
   const closeModal = () => setModal("");
@@ -71,14 +74,24 @@ const Home: NextPage = () => {
     setModal("sign-did-reputation-message-request");
 
   useEffect(() => {
-    relay?.connect().then(() => {
-      subscribeToEvents(
-        {
-          kinds: [8444],
-        },
-        async (event: any) => setEvents(e => [event, ...e])
-      );
-    });
+    relays?.forEach((r) =>
+      r.relay?.connect().then(() => {
+        r.subscribeToEvents(
+          {
+            kinds: [8444],
+            "#t": ["did-message"],
+          },
+          async (event: any) => {
+            if (!events.find((e) => e.id == event.id)) {
+              console.log("Adding Event!");
+              console.log(event);
+              console.log(events);
+              setEvents((e) => [event, ...e]);
+            }
+          }
+        );
+      })
+    );
   }, []);
 
   // Initialize the WalletConnect client.
@@ -153,12 +166,12 @@ const Home: NextPage = () => {
 
     return [
       {
-        method: "Sign Message With DID",
-        callback: SignMessageWithDID,
+        method: "Send nostr Message With DID",
+        callback: SignReputationMessageWithDID,
       },
       {
-        method: "Sign and Send Reputation Message With DID",
-        callback: SignReputationMessageWithDID,
+        method: "Sign Local Message With DID",
+        callback: SignMessageWithDID,
       },
     ];
   };
@@ -203,7 +216,7 @@ const Home: NextPage = () => {
     setCurrentDID(didId);
     setLocaleStorageDID(didId);
     if (!reputation_schema.safeParse(info).success) {
-      setErrorMessage("Invalid reputation message");
+      setErrorMessage("Invalid message");
       return;
     }
     const message = JSON.stringify(info);
@@ -233,17 +246,16 @@ const Home: NextPage = () => {
           msg: currentMessage,
           sig: chiaResponse.data.signature,
         });
-        console.log(messageToPublish);
         const event: any = {
           kind: 8444,
           pubkey: pk,
           created_at: Math.floor(Date.now() / 1000),
-          tags: [["#t", isTestnet ? "testnet-did-message": "did-message"]],
+          tags: [["t", isTestnet ? "testnet-did-message" : "did-message"]],
           content: messageToPublish,
         };
         event.id = await getEventHash(event);
         event.sig = await signEvent(event, sk);
-        await publish(event);
+        relays.forEach(async (r) => r.publish(event));
       } else {
         console.log("not successful");
         console.log(chiaResponse);
@@ -367,6 +379,15 @@ const Home: NextPage = () => {
       </SAccountsContainer>
     );
   };
+  const discoveredIds = new Set<string>();
+  const nftCollectionVotes: Record<string, Set<string>> = {};
+  events.forEach((e) => {
+    if (!e.body.valid) return;
+    if (nftCollectionVotes[e.body?.data?.collection_id] === undefined) {
+      nftCollectionVotes[e.body?.data?.collection_id] = new Set<string>();
+    }
+    nftCollectionVotes[e.body?.data?.collection_id].add(e.body?.data?.did);
+  });
 
   return (
     <SLayout>
@@ -374,14 +395,43 @@ const Home: NextPage = () => {
         <Header ping={onPing} disconnect={disconnect} session={session} />
         <SContent>{isInitializing ? "Loading..." : renderContent()}</SContent>
         <div>
-          <h6>Chia Mainnet Reputation Messages</h6>
           <div>
-            {isConnected ? (
-              <div> Socket connected </div>
+            {relays.filter((x) => x.isConnected).length === 0 ? (
+              <div> No relays connected </div>
             ) : (
-              <div> Socket disconnected </div>
+              <div>
+                {relays.filter((x) => x.isConnected).length} of {relays.length}{" "}
+                Relays Connected
+              </div>
             )}
           </div>
+          <h6>Chia Mainnet Most Liked NFT Collections</h6>
+          <table style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <td>
+                  <b>Collection</b>
+                </td>
+                <td>
+                  <b>Number of Verified Likes</b>
+                </td>
+              </tr>
+            </thead>
+            {Object.keys(nftCollectionVotes).map((collection) => {
+              return (
+                <tr>
+                  <td>
+                    {collectionOptions.find((o) => o.value == collection)
+                      ? collectionOptions.find((o) => o.value == collection)
+                          ?.label
+                      : collection}
+                  </td>
+                  <td>{nftCollectionVotes[collection].size}</td>
+                </tr>
+              );
+            })}
+          </table>
+          <h6>Chia Mainnet Reputation Messages</h6>
           <table style={{ alignContent: "left" }}>
             <thead>
               <tr>
@@ -403,10 +453,15 @@ const Home: NextPage = () => {
               </tr>
             </thead>
             {events.map((event: any) => {
-              const sourceDid = JSON.parse(event.content)?.did;
+              if (discoveredIds.has(event.id)) {
+                return null;
+              }
+              discoveredIds.add(event.id);
+              const sourceDid = event.body.did;
               const messageType = event.body.type;
-              const targetDid = event.body?.data?.did;
-              const ts = JSON.parse(JSON.parse(event.content)?.msg)?.ts;
+              const target =
+                event.body?.data?.did ?? event.body?.data?.collection_id;
+              const ts = event.body.ts;
               const verified = event.body.valid;
               const rowStyle = {
                 fontSize: "11px",
@@ -416,7 +471,7 @@ const Home: NextPage = () => {
                 <tr key={event.id}>
                   <td style={rowStyle}>{trimDid(sourceDid)}</td>
                   <td>{messageType}</td>
-                  <td style={rowStyle}>{trimDid(targetDid)}</td>
+                  <td style={rowStyle}>{trimDid(target)}</td>
                   <td>{new Date(ts).toLocaleString()}</td>
                   <td>{JSON.stringify(verified ?? false)}</td>
                 </tr>
@@ -433,7 +488,7 @@ const Home: NextPage = () => {
 };
 
 function trimDid(did: string) {
-  return did.substring(0, 10) + "..." + did.substring(did.length - 10);
+  return did?.substring(0, 10) + "..." + did?.substring(did.length - 10);
 }
 
 export default Home;

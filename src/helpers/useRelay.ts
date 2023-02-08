@@ -13,6 +13,13 @@ export const reputation_schema = z.discriminatedUnion("type", [
       did: z.string().startsWith("did:chia:"),
     }),
   }),
+  z.object({
+    type: z.literal("nft_collection_like"),
+    ts: z.string().datetime(),
+    data: z.object({
+      collection_id: z.string().startsWith("col1"),
+    }),
+  }),
 ]);
 
 export const NOSTR_CHIA_MESSAGES = 8444;
@@ -21,12 +28,16 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtd2RlanZhZ3hndGVibXZ5cXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzU2MjM0NDEsImV4cCI6MTk5MTE5OTQ0MX0.k88jq5uVFvG9G75_LtI_pn6QaS8Xkxndb2kUPecxLvk"
 );
 
-export const useRelay = () => {
+interface Props {
+  url: string;
+}
+
+export const useRelay = ({ url }: Props) => {
   const [relay, setRelay] = useState<Relay | undefined>();
   const [isConnected, setIsConnected] = useState<boolean>();
 
   if (!relay) {
-    const relay = relayInit("wss://nostr.p2sh.co");
+    const relay = relayInit(url);
     setRelay(relay);
     relay.on("connect", () => {
       console.log(`connected to ${relay!.url}`);
@@ -39,7 +50,9 @@ export const useRelay = () => {
     relay.on("disconnect" as any, () => {
       setIsConnected(false);
       console.log(`disconnect from ${relay!.url}`);
-      relay?.connect();
+      setTimeout(() => {
+        relay?.connect();
+      }, 10000);
     });
     relay.on("notice" as any, () => {
       console.log(`notice  from ${relay!.url}`);
@@ -53,7 +66,6 @@ export const useRelay = () => {
     const sub = relay.sub([filter]);
     sub.on("event", async (event: Event) => {
       try {
-        console.log("event", event);
         const message = message_schema_compat.parse(JSON.parse(event.content));
         let innerMessage: string;
         if ("message" in message) {
@@ -66,14 +78,14 @@ export const useRelay = () => {
         const hash = await sha256(event.content);
         let valid: boolean | undefined = await isValid(hash);
         console.log(valid);
-        if(valid === false) {
-          return //callback(event);
+        if (valid === false) {
+          return; //callback(event);
         }
-        return callback({...event, body: {...body, valid: valid}});
+        return callback({ ...event, body: { ...body, valid: valid } });
       } catch (e) {
         // Ignore
       }
-      return //callback(event);
+      return; //callback(event);
     });
     return sub;
   }
@@ -100,9 +112,13 @@ export const useRelay = () => {
   }
 
   async function isValid(hash: string) {
-    try{
-      const { data, error } = await supabase.from('checked_messages').select('*').eq('hash', hash).maybeSingle();
-      if(data?.valid === false) {
+    try {
+      const { data, error } = await supabase
+        .from("checked_messages")
+        .select("*")
+        .eq("hash", hash)
+        .maybeSingle();
+      if (data?.valid === false) {
         // Ignore if we know it's not valid
         return false;
       }

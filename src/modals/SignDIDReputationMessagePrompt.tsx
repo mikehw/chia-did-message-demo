@@ -1,10 +1,9 @@
 import * as React from "react";
-import { SButtonContainer } from "../components/app";
-
 import { SContainer } from "../components/shared";
 import Button from "../components/Button";
-
+import Select from "react-select";
 import { SModalContainer, SModalTitle } from "./shared";
+import { collectionOptions, CollectionOptions } from "./collectionOptions";
 
 import styled from "styled-components";
 
@@ -38,7 +37,6 @@ const SSelect = styled.select`
   box-sizing: border-box;
 `;
 
-
 export const SLabel = styled.label`
   display: block;
 `;
@@ -52,7 +50,7 @@ interface SignDIDMessageProps {
 const SignDIDReputationMessagePrompt = (props: SignDIDMessageProps) => {
   const [did, setDid] = React.useState(props.savedDid || "");
   const [info, setInfo] = React.useState<any>({});
-  const [messageType, setMessageType] = React.useState("did_trust");
+  const [messageType, setMessageType] = React.useState("nft_collection_like");
 
   const getForm = () => {
     switch (messageType) {
@@ -74,6 +72,70 @@ const SignDIDReputationMessagePrompt = (props: SignDIDMessageProps) => {
             />
           </div>
         );
+      case "nft_collection_like":
+        return (
+          <>
+            <div>
+              <SLabel htmlFor="did">Collection ID You Like</SLabel>
+              <Select
+                classNamePrefix="select"
+                options={collectionOptions}
+                onChange={(e: unknown, m) => {
+                  const selectedOption = e as CollectionOptions;
+                  if (selectedOption.value !== "other") {
+                    setInfo({
+                      type: "nft_collection_like",
+                      ts: new Date().toISOString(),
+                      data: { collection_id: selectedOption.value },
+                    });
+                  } else {
+                    setInfo({
+                      type: "nft_collection_like",
+                      ts: new Date().toISOString(),
+                      data: { collection_id: "" },
+                    });
+                  }
+                }}
+              ></Select>
+              <SInput
+                type="text"
+                name="nft"
+                placeholder="col1..."
+                value={info?.data?.collection_id}
+                onChange={(e) => {
+                  setInfo({
+                    type: "nft_collection_like",
+                    ts: new Date().toISOString(),
+                    data: { collection_id: e.currentTarget.value },
+                  });
+                }}
+              />
+              {collectionOptions.find(
+                (o) => o.value === info?.data?.collection_id
+              ) ? (
+                <>
+                  <div>
+                    <img
+                      alt={
+                        collectionOptions.find(
+                          (o) => o.value === info?.data?.collection_id
+                        )?.label
+                      }
+                      style={{
+                        height: "3.2rem",
+                        width: "3.2rem",
+                        borderRadius: "0.25rem",
+                      }}
+                      src={`https://nft.dexie.space/preview/tiny/${info?.data?.collection_id}.webp`}
+                    />
+                  </div>
+                </>
+              ) : (
+                <></>
+              )}
+            </div>
+          </>
+        );
       default:
         return <div>Select an option to continue</div>;
     }
@@ -81,7 +143,7 @@ const SignDIDReputationMessagePrompt = (props: SignDIDMessageProps) => {
 
   const signPressed = () => {
     // TODO: Validate info
-    props.onSign(did, info)
+    props.onSign(did, info);
   };
 
   return (
@@ -103,10 +165,17 @@ const SignDIDReputationMessagePrompt = (props: SignDIDMessageProps) => {
               />
             </div>
             <div>
-            <SLabel htmlFor="message_type">Message Type</SLabel>
-            <SSelect name="message_type" onChange={(e) => setMessageType(e.currentTarget.value)} defaultValue="did_trust">
-              <option value="did_trust">Trust DID</option>
-            </SSelect>
+              <SLabel htmlFor="message_type">Message Type</SLabel>
+              <SSelect
+                name="message_type"
+                onChange={(e) => setMessageType(e.currentTarget.value)}
+                defaultValue="nft_collection_like"
+              >
+                <option value="did_trust">Trust DID</option>
+                <option value="nft_collection_like">
+                  Like NFT Collection{" "}
+                </option>
+              </SSelect>
             </div>
             <div>{getForm()}</div>
             <Button type="button" onClick={signPressed}>
