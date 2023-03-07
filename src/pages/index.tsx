@@ -52,7 +52,7 @@ const { version } = require("@walletconnect/sign-client/package.json");
 const relayUrls = [
   "wss://nostr.8e23.net",
   "wss://relay.current.fyi",
-  "wws://relay.offerpool.io",
+  "wss://relay.offerpool.io",
 ];
 
 const sk = generatePrivateKey();
