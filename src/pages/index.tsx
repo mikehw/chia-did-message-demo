@@ -49,7 +49,11 @@ import { collectionOptions } from "../modals/collectionOptions";
 // Normal import does not work here
 const { version } = require("@walletconnect/sign-client/package.json");
 
-const relayUrls = ["wss://nostr.8e23.net", "wss://relay.current.fyi"];
+const relayUrls = [
+  "wss://nostr.8e23.net",
+  "wss://relay.current.fyi",
+  "wws://relay.offerpool.io",
+];
 
 const sk = generatePrivateKey();
 const pk = getPublicKey(sk);
