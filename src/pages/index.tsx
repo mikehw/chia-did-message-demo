@@ -386,11 +386,19 @@ const Home: NextPage = () => {
   const nftCollectionVotes: Record<string, Set<string>> = {};
   events.forEach((e) => {
     if (!e.body.valid) return;
+    if (!e.body?.data?.collection_id) {
+      return;
+    }
     if (nftCollectionVotes[e.body?.data?.collection_id] === undefined) {
       nftCollectionVotes[e.body?.data?.collection_id] = new Set<string>();
     }
     nftCollectionVotes[e.body?.data?.collection_id].add(e?.did);
   });
+
+  const eventsInOrder = events.sort((a, b) => (a.body.ts > b.body.ts ? -1 : 1));
+  const collectionsOrderedByVotes = Object.keys(nftCollectionVotes).sort(
+    (a, b) => nftCollectionVotes[b].size - nftCollectionVotes[a].size
+  );
 
   return (
     <SLayout>
@@ -420,19 +428,21 @@ const Home: NextPage = () => {
                 </td>
               </tr>
             </thead>
-            {Object.keys(nftCollectionVotes).map((collection) => {
-              return (
-                <tr>
-                  <td>
-                    {collectionOptions.find((o) => o.value == collection)
-                      ? collectionOptions.find((o) => o.value == collection)
-                          ?.label
-                      : collection}
-                  </td>
-                  <td>{nftCollectionVotes[collection].size}</td>
-                </tr>
-              );
-            })}
+            <tbody>
+              {collectionsOrderedByVotes.map((collection) => {
+                return (
+                  <tr key={collection}>
+                    <td>
+                      {collectionOptions.find((o) => o.value == collection)
+                        ? collectionOptions.find((o) => o.value == collection)
+                            ?.label
+                        : collection}
+                    </td>
+                    <td>{nftCollectionVotes[collection].size}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
           <h6>Chia Mainnet Reputation Messages</h6>
           <table style={{ alignContent: "left" }}>
@@ -456,36 +466,38 @@ const Home: NextPage = () => {
                 <td></td>
               </tr>
             </thead>
-            {events.map((event: any) => {
-              if (discoveredIds.has(event.id)) {
-                return null;
-              }
-              discoveredIds.add(event.id);
-              const sourceDid = event.did;
-              const messageType = event.body.type;
-              const target =
-                event.body?.data?.did ?? event.body?.data?.collection_id;
-              const ts = event.body.ts;
-              const verified = event.body.valid;
-              const rowStyle = {
-                fontSize: "11px",
-                fontFamily: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`,
-              };
-              return (
-                <tr key={event.id} style={rowStyle}>
-                  <td>{trimDid(sourceDid)}</td>
-                  <td>{messageType}</td>
-                  <td>{trimDid(target)}</td>
-                  <td>{new Date(ts).toLocaleString()}</td>
-                  <td>{JSON.stringify(verified ?? false)}</td>
-                  <td>
-                    <CopyToClipboard text={event.content}>
-                      <button>Copy</button>
-                    </CopyToClipboard>
-                  </td>
-                </tr>
-              );
-            })}
+            <tbody>
+              {eventsInOrder.map((event: any) => {
+                if (discoveredIds.has(event.id)) {
+                  return null;
+                }
+                discoveredIds.add(event.id);
+                const sourceDid = event.did;
+                const messageType = event.body.type;
+                const target =
+                  event.body?.data?.did ?? event.body?.data?.collection_id;
+                const ts = event.body.ts;
+                const verified = event.body.valid;
+                const rowStyle = {
+                  fontSize: "11px",
+                  fontFamily: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`,
+                };
+                return (
+                  <tr key={event.id} style={rowStyle}>
+                    <td>{trimDid(sourceDid)}</td>
+                    <td>{messageType}</td>
+                    <td>{trimDid(target)}</td>
+                    <td>{new Date(ts).toLocaleString()}</td>
+                    <td>{JSON.stringify(verified ?? false)}</td>
+                    <td>
+                      <CopyToClipboard text={event.content}>
+                        <button>Copy</button>
+                      </CopyToClipboard>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </Column>
